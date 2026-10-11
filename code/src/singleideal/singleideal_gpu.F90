@@ -1363,8 +1363,9 @@ contains
     &ount_weno_control , icyc => self%equation_base%icyc , icyc0 => self%equation_base%icyc0,&
     & ifilter => self%equation_base%ifilter)
 
+      ! enable_forces_runtime = N > 0: airfoil forces every N steps
       if(grid_dim == 2 .and. enable_forces_runtime > 0) then
-        call self%compute_airfoil_forces_runtime()
+        if (mod(icyc-icyc0,enable_forces_runtime) == 0) call self%compute_airfoil_forces_runtime()
       endif
       if (count_weno_control >0) then
         if (mod(icyc-icyc0,count_weno_control) == 0) then
