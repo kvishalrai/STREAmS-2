@@ -1,0 +1,18 @@
+#----------------------------------------------------------------------
+# MN5 Grace (NGP, aarch64 Neoverse-V2), CPU backend with GCC + OpenMPI
+# Build on an nglogin node:
+#   module purge; module load gcc/14.2.0 openmpi/4.1.6-gcc ucx/1.19-gcc; make
+#----------------------------------------------------------------------
+EQUATION = "singleideal"
+BACKEND  = "cpu"
+COMPILE  = "gnu"
+MODE     = "opt"
+PREC     = "double"
+CUDA_VER =
+MPI_CMD  = 
+MPI_BACKEND = -mcpu=neoverse-v2
+
+define LOAD
+module load gcc/14.2.0 openmpi/4.1.6-gcc ucx/1.19-gcc
+endef
+export LOAD

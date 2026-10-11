@@ -4,6 +4,11 @@
 include makefile.inc
 #----------------------------------------------------------------------
 
+# GPU target for nv-cuda opt builds without CUDA_VER (e.g. GPU_CC = cc90 for H100); default ccall
+ifeq (${GPU_CC},)
+    GPU_CC = ccall
+endif
+
 #----------------------------------------------------------------------
 ifeq (${PREC},"single")
     PRECFLAGS = -DSINGLE_PRECISION
@@ -63,7 +68,7 @@ ifeq (${COMPILE},"nv-cuda") # mpif90 shipped with PGI compiler
         #OLEVEL = -O3 -Mcuda=ccall,cuda$(CUDA_VER)
         OLEVEL = -O3 -cuda -gpu=ccall,cuda$(CUDA_VER)
         ifeq (${CUDA_VER},"")
-             OLEVEL = -O3 -cuda -gpu=ccall
+             OLEVEL = -O3 -cuda -gpu=$(GPU_CC)
         endif
     else
         #OLEVEL = -Mcuda=ccall,cuda11.0,ptxinfo -g -Minfo

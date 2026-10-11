@@ -1,0 +1,21 @@
+# MN5 ACC (H100), CUDA Fortran with NVHPC 24.3: CUDA_VER empty, compute capability set by GPU_CC
+#----------------------------------------------------------------------
+# SUPPORTED COMPILE: nv-cuda, nv, intel, gnu, ibmxl, cray-cuda
+# SUPPORTED MODES  : opt, debug [default=debug]
+# SUPPORTED PRECISIONS (PREC) : single, double [default=double]
+#----------------------------------------------------------------------
+EQUATION = "singleideal"
+BACKEND  = "gpu"
+COMPILE  = "nv-cuda"
+MODE     = "opt"
+PREC     = "double"
+CUDA_VER = ""
+GPU_CC   = cc90
+MPI_CMD  = 
+CGAL     = "no"
+CATALYST = "no"
+
+define LOAD
+module load nvidia-hpc-sdk/24.3 ;
+endef
+export LOAD
