@@ -99,6 +99,7 @@ module streams_equation_singleideal_object
 
     integer :: flow_init
     real(rkind) :: Mach, Reynolds, Prandtl, theta_wall
+    integer :: adiabatic_wall
     real(rkind) :: aoa
     real(rkind) :: Reynolds_friction
     real(rkind) :: rgas0
@@ -368,6 +369,13 @@ contains
       call self%cfg%get("flow","aoa",self%aoa)
     endif
     self%aoa = self%aoa*pi/180._rkind
+
+    ! Adiabatic airfoil wall (bc 11, gpu and cpu backends only); theta_wall is then ignored at the wall
+    self%adiabatic_wall = 0
+    if (self%cfg%has_key("flow","adiabatic_wall")) then
+      call self%cfg%get("flow","adiabatic_wall",self%adiabatic_wall)
+    endif
+    if(.not. any(self%adiabatic_wall == [0,1])) call fail_input_any("adiabatic_wall must be 0 or 1")
 
     self%l0_ducros = self%l0
     if (self%flow_init == 5) then

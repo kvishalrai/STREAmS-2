@@ -6724,13 +6724,14 @@ contains
 
   subroutine bcwall_airfoil_cuf(ilat, nx, ny, nz, ng, twall, w_gpu, w_aux_gpu, wall_tag_gpu,&
   & indx_cp_l, indx_cp_r, cv_coeff_gpu, t0, rgas0, calorically_perfect, tol_iter_nr, xc2_gpu, yc2_gpu,&
-  & a_tw, v_bs, thic, kx_tw, om_tw, xtw1, xtw2, time, dxdetanc2_gpu, dydetanc2_gpu, u0)
+  & a_tw, v_bs, thic, kx_tw, om_tw, xtw1, xtw2, time, dxdetanc2_gpu, dydetanc2_gpu, u0, adiabatic_wall)
     integer :: nx,ny,nz,ng,indx_cp_l,indx_cp_r,calorically_perfect
-    integer :: ilat
+    integer :: ilat, adiabatic_wall
     integer :: i,k,l, iercuda
     integer, dimension(1-ng:nx+ng), intent(in), device :: wall_tag_gpu
     real(rkind) :: u0, twall, t0, rgas0, tol_iter_nr
     real(rkind) :: rho,uu,vv,ww,qq,pp,tt,rhoe,ee
+    real(rkind) :: twl, cext
     real(rkind), dimension(1-ng:, 1-ng:, 1-ng:, 1:), intent(inout), device :: w_gpu
     real(rkind), dimension(1-ng:, 1-ng:, 1-ng:, 1:), intent(in), device :: w_aux_gpu
     real(rkind), dimension(indx_cp_l:indx_cp_r+1), intent(in), device :: cv_coeff_gpu
@@ -6747,6 +6748,27 @@ contains
         do i=1,nx
           if(wall_tag_gpu(i) < 1) then
 
+            ! Adiabatic wall: T_w from third-order zero-normal-gradient extrapolation,
+            ! T_w = (18 T_2 - 9 T_3 + 2 T_4)/11, ghost temperatures mirrored below
+            twl = twall
+            if (adiabatic_wall > 0) then
+              twl = 0._rkind
+              do l=1,3
+                rho = w_gpu(i,1+l,k,1)
+                uu = w_gpu(i,1+l,k,2)/rho
+                vv = w_gpu(i,1+l,k,3)/rho
+                ww = w_gpu(i,1+l,k,4)/rho
+                ee = w_gpu(i,1+l,k,5)/rho-0.5_rkind*(uu*uu+vv*vv+ww*ww)
+                tt = get_temperature_from_e_dev(ee,w_aux_gpu(i,1+l,k,6),t0,cv_coeff_gpu,indx_cp_l,&
+                &indx_cp_r,calorically_perfect,tol_iter_nr)
+                cext = 18._rkind
+                if (l==2) cext = -9._rkind
+                if (l==3) cext = 2._rkind
+                twl = twl+cext*tt
+              enddo
+              twl = twl/11._rkind
+            endif
+
             dx1 = (xc2_gpu(i,1)-xtw1)
             dx2 = (xc2_gpu(i,1)-xtw2)
 
@@ -6756,7 +6778,7 @@ contains
               w_gpu(i,1,k,2) = 0._rkind
               w_gpu(i,1,k,3) = 0._rkind
               w_gpu(i,1,k,4) = w_gpu(i,1,k,1)*tww
-              ee = get_e_from_temperature_dev(twall, t0, indx_cp_l, indx_cp_r, cv_coeff_gpu, calorically_perfect)
+              ee = get_e_from_temperature_dev(twl, t0, indx_cp_l, indx_cp_r, cv_coeff_gpu, calorically_perfect)
               w_gpu(i,1,k,5) = w_gpu(i,1,k,1)*ee+w_gpu(i,1,k,1)*0.5_rkind*(tww*tww)
 
             elseif(abs(v_bs) > 0._rkind .and. wall_tag_gpu(i) == 0) then
@@ -6765,14 +6787,14 @@ contains
               w_gpu(i,1,k,2) = w_gpu(i,1,k,1)*tww*dxdetanc2_gpu(i,1)
               w_gpu(i,1,k,3) = w_gpu(i,1,k,1)*tww*dydetanc2_gpu(i,1)
               w_gpu(i,1,k,4) = 0._rkind
-              ee = get_e_from_temperature_dev(twall, t0, indx_cp_l, indx_cp_r, cv_coeff_gpu, calorically_perfect)
+              ee = get_e_from_temperature_dev(twl, t0, indx_cp_l, indx_cp_r, cv_coeff_gpu, calorically_perfect)
               w_gpu(i,1,k,5) = w_gpu(i,1,k,1)*ee+w_gpu(i,1,k,1)*0.5_rkind*(tww*tww)
 
             else
               w_gpu(i,1,k,2) = 0._rkind
               w_gpu(i,1,k,3) = 0._rkind
               w_gpu(i,1,k,4) = 0._rkind
-              ee = get_e_from_temperature_dev(twall, t0, indx_cp_l, indx_cp_r, cv_coeff_gpu, calorically_perfect)
+              ee = get_e_from_temperature_dev(twl, t0, indx_cp_l, indx_cp_r, cv_coeff_gpu, calorically_perfect)
               w_gpu(i,1,k,5) = w_gpu(i,1,k,1)*ee
             endif
 
@@ -6787,7 +6809,7 @@ contains
               tt = get_temperature_from_e_dev(ee,w_aux_gpu(i,1+l,k,6),t0,cv_coeff_gpu,indx_cp_l,&
               &indx_cp_r,calorically_perfect,tol_iter_nr)
               pp = rho*tt*rgas0
-              tt = 2._rkind*twall-tt
+              if (adiabatic_wall == 0) tt = 2._rkind*twl-tt
               ee = get_e_from_temperature_dev(tt, t0, indx_cp_l, indx_cp_r, cv_coeff_gpu,calorically_perfect)
               rho = pp/tt/rgas0
 

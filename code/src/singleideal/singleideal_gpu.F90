@@ -1116,7 +1116,8 @@ contains
         & self%equation_base%calorically_perfect,tol_iter_nr, self%base_gpu%xc2_gpu, self%base_gpu%yc2_gpu,&
         & self%equation_base%a_tw, self%equation_base%v_bs, self%equation_base%thic, self%equation_base%kx_tw&
         &, self%equation_base%om_tw, self%equation_base%xtw1, self%equation_base%xtw2, self%equation_base%tim&
-        &e, self%base_gpu%dxdetanc2_gpu, self%base_gpu%dydetanc2_gpu, self%equation_base%u0)
+        &e, self%base_gpu%dxdetanc2_gpu, self%base_gpu%dydetanc2_gpu, self%equation_base%u0,&
+        & self%equation_base%adiabatic_wall)
         call self%base_gpu%bcte()
       endselect
     enddo
